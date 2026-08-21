@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短信订单处理</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 620px;
+            overflow: hidden;
+        }
+        .nav-bar {
+            display: flex;
+            background: #f7fafc;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .nav-bar a {
+            flex: 1;
+            text-align: center;
+            padding: 14px 0;
+            text-decoration: none;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .nav-bar a:hover { background: #edf2f7; }
+        .nav-bar a.active {
+            color: #11998e;
+            border-bottom-color: #11998e;
+            background: #f0fff4;
+        }
+        .header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: #fff;
+            padding: 24px 32px;
+        }
+        .header h1 { font-size: 22px; font-weight: 600; }
+        .header p { margin-top: 6px; opacity: 0.85; font-size: 13px; }
+        .body { padding: 24px 32px; }
+        .form-row { display: flex; gap: 10px; }
+        .form-group { margin-bottom: 16px; flex: 1; }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .required { color: #e74c3c; margin-left: 2px; }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #11998e;
+            box-shadow: 0 0 0 3px rgba(17, 153, 142, 0.15);
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-outline {
+            background: #fff;
+            color: #11998e;
+            border: 1px solid #11998e;
+            align-self: flex-end;
+        }
+        .btn-outline:hover { background: #f0fff4; }
+        .order-info {
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .order-info .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 13px;
+        }
+        .order-info .row .key { color: #718096; }
+        .order-info .row .val { color: #2d3748; font-weight: 500; word-break: break-all; text-align: right; max-width: 70%; }
+        .order-info .row .val.pending { color: #d69e2e; }
+        .order-info .row .val.processing { color: #3182ce; }
+        .order-info .row .val.success { color: #38a169; }
+        .order-info .row .val.failed { color: #e53e3e; }
+        .order-info .row .val.review_failed { color: #e53e3e; }
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafbfc;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #11998e;
+            background: #f0fff4;
+        }
+        .drop-zone .icon { font-size: 36px; color: #a0aec0; margin-bottom: 8px; }
+        .drop-zone .text { color: #4a5568; font-size: 14px; }
+        .drop-zone .hint { color: #a0aec0; font-size: 12px; margin-top: 4px; }
+        .preview {
+            margin-top: 12px;
+            position: relative;
+            display: none;
+        }
+        .preview img {
+            max-width: 100%;
+            max-height: 240px;
+            border-radius: 6px;
+            display: block;
+            border: 1px solid #eee;
+        }
+        .preview .remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .progress {
+            margin-top: 14px;
+            height: 6px;
+            background: #edf2f7;
+            border-radius: 3px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress .bar {
+            height: 100%;
+            background: linear-gradient(90deg, #11998e, #38ef7d);
+            width: 0%;
+            transition: width 0.2s;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: #fff;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+        }
+        .btn-primary:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .action-tabs {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0 16px;
+        }
+        .action-tab {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-tab:hover { background: #f7fafc; }
+        .action-tab.active.complete {
+            color: #11998e;
+            border-color: #11998e;
+            background: #f0fff4;
+        }
+        .action-tab.active.reject {
+            color: #c53030;
+            border-color: #c53030;
+            background: #fff5f5;
+        }
+        .action-panel { display: none; }
+        .action-panel.active { display: block; }
+        .reject-group { margin-bottom: 12px; }
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 70px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+        }
+        .btn-reject {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            background: linear-gradient(135deg, #c53030 0%, #e53e3e 100%);
+            color: #fff;
+            transition: all 0.2s;
+        }
+        .btn-reject:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+        }
+        .btn-reject:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 18px;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+        .result.success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #2f855a;
+        }
+        .result.error {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+        }
+        .result a { color: #2b6cb0; word-break: break-all; }
+        .config-bar {
+            background: #f7fafc;
+            padding: 10px 32px;
+            font-size: 12px;
+            color: #718096;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .config-bar input {
+            flex: 1;
+            padding: 4px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .config-bar input.query { width: 130px; flex: 0 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="/sms_order_process.html" class="active">短信订单处理</a>
+            <a href="/sms_reply_upload.html">短信回复图片上传</a>
+        </div>
+        <div class="header">
+            <h1>短信订单处理</h1>
+            <p>查询订单 → 上传完成图片 → 订单状态置为 success</p>
+        </div>
+        <div class="body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>用户 ID <span class="required">*</span></label>
+                    <input type="text" id="userId" placeholder="请输入 user_id">
+                </div>
+                <div class="form-group">
+                    <label>订单号 <span class="required">*</span></label>
+                    <input type="text" id="orderNo" placeholder="请输入 order_no">
+                </div>
+                <button type="button" class="btn btn-outline" id="queryBtn">查询</button>
+            </div>
+
+            <div class="order-info" id="orderInfo"></div>
+
+            <div class="action-tabs">
+                <button type="button" class="action-tab complete active" data-action="complete">完成订单</button>
+                <button type="button" class="action-tab reject" data-action="reject">驳回订单</button>
+            </div>
+
+            <div class="action-panel active" id="completePanel">
+                <div class="form-group">
+                    <label>完成图片 <span class="required">*</span></label>
+                    <div class="drop-zone" id="dropZone">
+                        <div class="icon">+</div>
+                        <div class="text">点击选择或拖拽图片到此处</div>
+                        <div class="hint">仅支持 .png / .jpg / .jpeg，最大 10MB</div>
+                        <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden>
+                    </div>
+                    <div class="preview" id="preview">
+                        <img id="previewImg" src="" alt="预览">
+                        <button type="button" class="remove" id="removeBtn">×</button>
+                    </div>
+                    <div class="progress" id="progress">
+                        <div class="bar" id="progressBar"></div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-primary" id="submitBtn" disabled>完成订单</button>
+                <div class="result" id="result"></div>
+            </div>
+
+            <div class="action-panel" id="rejectPanel">
+                <div class="reject-group">
+                    <label>驳回原因 <span class="required">*</span></label>
+                    <textarea id="rejectReason" placeholder="请输入驳回原因，例如：内容不合规、图片不清晰等" maxlength="500"></textarea>
+                </div>
+                <button type="button" class="btn-reject" id="rejectBtn" disabled>驳回订单</button>
+                <div class="result" id="rejectResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/v2';
+        const userIdInput = document.getElementById('userId');
+        const orderNoInput = document.getElementById('orderNo');
+        const queryBtn = document.getElementById('queryBtn');
+        const orderInfo = document.getElementById('orderInfo');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImg = document.getElementById('previewImg');
+        const removeBtn = document.getElementById('removeBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const result = document.getElementById('result');
+        const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const rejectReasonInput = document.getElementById('rejectReason');
+        const rejectBtn = document.getElementById('rejectBtn');
+        const rejectResult = document.getElementById('rejectResult');
+        const actionTabs = document.querySelectorAll('.action-tab');
+        const completePanel = document.getElementById('completePanel');
+        const rejectPanel = document.getElementById('rejectPanel');
+
+        let selectedFile = null;
+        let currentOrder = null;
+
+        actionTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const action = tab.dataset.action;
+                actionTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                completePanel.classList.toggle('active', action === 'complete');
+                rejectPanel.classList.toggle('active', action === 'reject');
+                result.style.display = 'none';
+                rejectResult.style.display = 'none';
+            });
+        });
+
+        function checkReady() {
+            submitBtn.disabled = !(selectedFile && userIdInput.value.trim() && orderNoInput.value.trim());
+        }
+        function checkRejectReady() {
+            rejectBtn.disabled = !(rejectReasonInput.value.trim() && userIdInput.value.trim() && orderNoInput.value.trim());
+        }
+        userIdInput.addEventListener('input', () => { checkReady(); checkRejectReady(); });
+        orderNoInput.addEventListener('input', () => { currentOrder = null; orderInfo.style.display = 'none'; checkReady(); checkRejectReady(); });
+        rejectReasonInput.addEventListener('input', checkRejectReady);
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function statusClass(s) {
+            return s || '';
+        }
+        function showSuccess(html) {
+            result.className = 'result success';
+            result.innerHTML = html;
+            result.style.display = 'block';
+        }
+        function showError(msg) {
+            result.className = 'result error';
+            result.textContent = msg;
+            result.style.display = 'block';
+        }
+        function hideResult() { result.style.display = 'none'; }
+
+        queryBtn.addEventListener('click', () => {
+            const userID = userIdInput.value.trim();
+            const orderNo = orderNoInput.value.trim();
+            if (!userID || !orderNo) { showError('请填写 user_id 和 order_no'); return; }
+            hideResult();
+            const url = API_BASE + '/sms/order/detail?order_no=' + encodeURIComponent(orderNo);
+            fetch(url)
+                .then(r => r.json())
+                .then(resp => {
+                    if (resp.code !== 200 || !resp.data) {
+                        showError('查询失败: ' + (resp.message || 'order not found'));
+                        orderInfo.style.display = 'none';
+                        currentOrder = null;
+                        return;
+                    }
+                    currentOrder = resp.data;
+                    const d = resp.data;
+                    orderInfo.innerHTML =
+                        '<div class="row"><span class="key">订单号</span><span class="val">' + escapeHtml(d.order_no) + '</span></div>' +
+                        '<div class="row"><span class="key">用户 ID</span><span class="val">' + escapeHtml(d.user_id) + '</span></div>' +
+                        '<div class="row"><span class="key">传话平台</span><span class="val">' + escapeHtml(d.platform || '-') + '</span></div>' +
+                        '<div class="row"><span class="key">传话账号</span><span class="val">' + escapeHtml(d.platform_account || '-') + '</span></div>' +
+                        '<div class="row"><span class="key">内容</span><span class="val">' + escapeHtml(d.content || '-') + '</span></div>' +
+                        '<div class="row"><span class="key">状态</span><span class="val ' + statusClass(d.remarks) + '">' + escapeHtml(d.remarks || '-') + '</span></div>' +
+                        (d.reject_reason ? '<div class="row"><span class="key">驳回原因</span><span class="val">' + escapeHtml(d.reject_reason) + '</span></div>' : '') +
+                        (d.image_url ? '<div class="row"><span class="key">图片</span><span class="val"><a href="' + escapeHtml(d.image_url) + '" target="_blank">查看</a></span></div>' : '');
+                    orderInfo.style.display = 'block';
+                })
+                .catch(err => showError('查询出错: ' + err.message));
+        });
+
+        function setFile(file) {
+            if (!file) return;
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            if (!['png', 'jpg', 'jpeg'].includes(ext)) { showError('文件格式不支持，仅支持 png/jpg/jpeg'); return; }
+            if (file.size > 10 * 1024 * 1024) { showError('文件大小超过 10MB 限制'); return; }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => { previewImg.src = e.target.result; preview.style.display = 'block'; };
+            reader.readAsDataURL(file);
+            hideResult();
+            checkReady();
+        }
+        function clearFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            preview.style.display = 'none';
+            previewImg.src = '';
+            checkReady();
+        }
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => setFile(e.target.files[0]));
+        removeBtn.addEventListener('click', clearFile);
+        ['dragenter', 'dragover'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+        ['dragleave', 'drop'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+        dropZone.addEventListener('drop', (e) => setFile(e.dataTransfer.files[0]));
+
+        submitBtn.addEventListener('click', () => {
+            if (submitBtn.disabled) return;
+            const formData = new FormData();
+            formData.append('user_id', userIdInput.value.trim());
+            formData.append('order_no', orderNoInput.value.trim());
+            formData.append('file', selectedFile);
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+            progress.style.display = 'block';
+            progressBar.style.width = '0%';
+            hideResult();
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', API_BASE + '/sms/order/complete');
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    progressBar.style.width = Math.round((e.loaded / e.total) * 100) + '%';
+                }
+            };
+            xhr.onload = () => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '完成订单';
+                let resp; try { resp = JSON.parse(xhr.responseText); } catch (_) { resp = null; }
+                if (xhr.status >= 200 && xhr.status < 300 && resp && resp.code === 200) {
+                    const d = resp.data || {};
+                    showSuccess(
+                        '订单已完成！<br>' +
+                        '订单号: <strong>' + (d.order_no || '-') + '</strong><br>' +
+                        '状态: <strong>' + (d.status || '-') + '</strong><br>' +
+                        '图片 URL: <a href="' + d.image_url + '" target="_blank">' + d.image_url + '</a>'
+                    );
+                    if (queryBtn) queryBtn.click();
+                } else {
+                    showError('操作失败: ' + ((resp && (resp.message || resp.error)) || ('HTTP ' + xhr.status)));
+                }
+            };
+            xhr.onerror = () => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '完成订单';
+                showError('网络错误，请检查 API 地址或网络连接');
+            };
+            xhr.send(formData);
+        });
+
+        function showRejectSuccess(html) {
+            rejectResult.className = 'result success';
+            rejectResult.innerHTML = html;
+            rejectResult.style.display = 'block';
+        }
+        function showRejectError(msg) {
+            rejectResult.className = 'result error';
+            rejectResult.textContent = msg;
+            rejectResult.style.display = 'block';
+        }
+
+        rejectBtn.addEventListener('click', () => {
+            if (rejectBtn.disabled) return;
+            const userID = userIdInput.value.trim();
+            const orderNo = orderNoInput.value.trim();
+            const rejectReason = rejectReasonInput.value.trim();
+            if (!userID || !orderNo) { showRejectError('请填写 user_id 和 order_no'); return; }
+            if (!rejectReason) { showRejectError('请填写驳回原因'); return; }
+            if (!confirm('确定驳回该订单吗？订单状态将被置为审核失败。')) return;
+
+            const formData = new FormData();
+            formData.append('user_id', userID);
+            formData.append('order_no', orderNo);
+            formData.append('reject_reason', rejectReason);
+
+            rejectBtn.disabled = true;
+            const originalText = rejectBtn.textContent;
+            rejectBtn.textContent = '提交中...';
+            rejectResult.style.display = 'none';
+
+            fetch(API_BASE + '/sms/order/reject', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(resp => {
+                    if (resp.code !== 200) {
+                        showRejectError('操作失败: ' + (resp.message || 'unknown error'));
+                        return;
+                    }
+                    const d = resp.data || {};
+                    showRejectSuccess(
+                        '订单已驳回！<br>' +
+                        '订单号: <strong>' + escapeHtml(d.order_no || orderNo) + '</strong><br>' +
+                        '状态: <strong>' + escapeHtml(d.status || '-') + '</strong><br>' +
+                        '驳回原因: ' + escapeHtml(d.reject_reason || rejectReason)
+                    );
+                    rejectReasonInput.value = '';
+                    if (queryBtn) queryBtn.click();
+                })
+                .catch(err => showRejectError('网络错误: ' + err.message))
+                .finally(() => {
+                    rejectBtn.disabled = false;
+                    rejectBtn.textContent = originalText;
+                });
+        });
+    </script>
+</body>
+</html>

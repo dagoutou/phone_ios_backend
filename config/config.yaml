@@ -1,0 +1,65 @@
+APP:
+  Database:
+    Host: "localhost"
+    Port: 3306
+    User: "root"
+    Password: "12345678"
+    DBName: "app_ios_phone"
+  Redis:
+    Addr:  "localhost:6379"
+    Password: ""
+    DB: 0
+  Token:
+    AiToken: "test"
+  App:
+    Appid: "wx38cbb25f14946690"
+    Mchid: "1650733749"
+    NotifyUrl: "https://112.74.35.176:8088/v1/pay/call_back"
+    AliPayNotifyUrl: "https://112.74.35.176:8088/v1/aliPay/aliPay_callback"
+    AmountTotal: 1800
+    AliPayAmountTotal: 0.01
+  SMS:
+    SignName: "深圳市逐鹿网络"
+    TemplateCode: "SMS_293635313"
+    # 阿里云短信 AccessKey
+    AccessKeyID: "LTAI5t7Mw"
+    AccessKeySecret: "AlDKUe0aBq8N8ZSO0"
+    Count: 5
+    Interval: 5
+    # Anonymous SMS API config
+    APIDomain: "api.ugmj.cn"
+    APIAccount: "16675523881"
+    APIPassword: "Tt523881"
+    APIProduct: "6"
+    SendURL: "http://sms.yizhanhongtu.cn/send_sms"
+  IsOnLine: true
+  URL1: "http://127.0.0.1:8888/app/outtel/set"
+  URL2: "http://127.0.0.1:8888/app/outtel/get"
+  Provider: "companyA"
+  External:
+    Url: "http://pn.rurg.cn"
+    AccountNo: "ACC001"
+    Phone: "16675523881"
+    Sign: "USNYBATHDDRE"
+  Mail:
+    smtp_host: "smtp.qiye.aliyun.com"  # QQ邮箱SMTP服务器
+    smtp_port: 465            # QQ邮箱SMTP端口
+    username: "yanren.yang@yunqutech.com"  # 发件人邮箱
+    password: "tcuCQ94vegiDi0iK"  # QQ邮箱授权码（非登录密码）
+    from_name: "人工传话系统订单"  # 发件人名称
+    notify_email: "2316387275@qq.com"  # 订单通知抄送邮箱（订单创建时会向此邮箱发送一份）
+  AppleIAP:
+    BundleID: "com.lovephone.app"              # iOS App Bundle Identifier
+    SharedSecret: "e94510b4158f492189b23a842a4797d0"  # 旧版 verifyReceipt 共享密钥(StoreKit2 验证不用)
+    Environment: "sandbox"               # sandbox / production
+    # App Store Server API(StoreKit 2 / uni.requestVirtualPayment 验证必需)
+    # 在 App Store Connect > 用户和访问 > 集成 > App 管理 > 密钥 中创建,下载 .p8 文件(只能下载一次)
+    IssuerID: "69c49078-20d6-4e81-8e26-62bf203768b2"          # 密钥页面顶部的 Issuer ID(UUID 格式)
+    KeyID: "AAK6HTZC2B"                # 创建密钥后显示的 Key ID
+    PrivateKey: |                              # .p8 文件完整内容(含 BEGIN/END 行)
+      -----BEGIN PRIVATE KEY-----
+      MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgAo1aTfLSCo7peKfG
+      JVZf7RoMlW/8Dg/pcfpauje+qFKgCgYIKoZIzj0DAQehRANCAARh4p/7PLv4bVmB
+      7ZG6NMTU+T4/HUN2NySHJlMpMhRqpxm6Gm4/IQjuJSuy9EMvMbGs0nSR55kGBD5Q
+      AbBQo+HB
+      -----END PRIVATE KEY-----

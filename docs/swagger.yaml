@@ -1,0 +1,134 @@
+basePath: /v2
+definitions:
+  my_utils.ExternalResp:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+host: localhost:8089
+info:
+  contact: {}
+  description: 安卓服务对外 API 文档（仅包含 external 相关接口）
+  title: Andro API
+  version: "1.0"
+paths:
+  /external/balance:
+    get:
+      description: 代理转发至上游 /external/balance，返回当前账户余额
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上游返回的余额信息
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+        "500":
+          description: 上游请求或解析失败
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+      summary: 获取外部账户余额
+      tags:
+      - external
+  /external/orders:
+    post:
+      consumes:
+      - application/json
+      description: 代理转发至上游 /external/orders，请求体原样透传，由上游定义字段契约
+      parameters:
+      - description: 订单创建参数（字段由上游定义，原样透传）
+        in: body
+        name: order
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上游返回的订单创建结果
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+        "400":
+          description: 读取请求体失败
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+        "500":
+          description: 上游请求或解析失败
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+      summary: 创建外部订单
+      tags:
+      - external
+  /external/orders/detail:
+    get:
+      description: 代理转发至上游 /external/orders/detail，查询参数原样透传
+      parameters:
+      - description: 订单号
+        in: query
+        name: orderNo
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上游返回的订单详情
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+        "500":
+          description: 上游请求或解析失败
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+      summary: 获取外部订单详情
+      tags:
+      - external
+  /external/orders/list:
+    get:
+      description: 代理转发至上游 /external/orders/list，查询参数原样透传
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上游返回的订单列表
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+        "500":
+          description: 上游请求或解析失败
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+      summary: 获取外部订单列表
+      tags:
+      - external
+  /external/plans:
+    get:
+      description: 代理转发至上游 /external/plans，返回可用套餐列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上游返回的套餐列表
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+        "500":
+          description: 上游请求或解析失败
+          schema:
+            $ref: '#/definitions/my_utils.ExternalResp'
+      summary: 获取外部套餐列表
+      tags:
+      - external
+schemes:
+- http
+- https
+swagger: "2.0"

@@ -1,0 +1,204 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "安卓服务对外 API 文档（仅包含 external 相关接口）",
+        "title": "Andro API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8089",
+    "basePath": "/v2",
+    "paths": {
+        "/external/balance": {
+            "get": {
+                "description": "代理转发至上游 /external/balance，返回当前账户余额",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "external"
+                ],
+                "summary": "获取外部账户余额",
+                "responses": {
+                    "200": {
+                        "description": "上游返回的余额信息",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    },
+                    "500": {
+                        "description": "上游请求或解析失败",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/external/orders": {
+            "post": {
+                "description": "代理转发至上游 /external/orders，请求体原样透传，由上游定义字段契约",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "external"
+                ],
+                "summary": "创建外部订单",
+                "parameters": [
+                    {
+                        "description": "订单创建参数（字段由上游定义，原样透传）",
+                        "name": "order",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "上游返回的订单创建结果",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    },
+                    "400": {
+                        "description": "读取请求体失败",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    },
+                    "500": {
+                        "description": "上游请求或解析失败",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/external/orders/detail": {
+            "get": {
+                "description": "代理转发至上游 /external/orders/detail，查询参数原样透传",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "external"
+                ],
+                "summary": "获取外部订单详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "订单号",
+                        "name": "orderNo",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "上游返回的订单详情",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    },
+                    "500": {
+                        "description": "上游请求或解析失败",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/external/orders/list": {
+            "get": {
+                "description": "代理转发至上游 /external/orders/list，查询参数原样透传",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "external"
+                ],
+                "summary": "获取外部订单列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "上游返回的订单列表",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    },
+                    "500": {
+                        "description": "上游请求或解析失败",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/external/plans": {
+            "get": {
+                "description": "代理转发至上游 /external/plans，返回可用套餐列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "external"
+                ],
+                "summary": "获取外部套餐列表",
+                "responses": {
+                    "200": {
+                        "description": "上游返回的套餐列表",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    },
+                    "500": {
+                        "description": "上游请求或解析失败",
+                        "schema": {
+                            "$ref": "#/definitions/my_utils.ExternalResp"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "my_utils.ExternalResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
