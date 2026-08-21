@@ -1,18 +1,14 @@
 package api
 
 import (
+	"net/http"
 	"phone_ios_backend/common"
-	"phone_ios_backend/connection"
 	"phone_ios_backend/dao"
 	"phone_ios_backend/logger"
-	"phone_ios_backend/model"
-	"phone_ios_backend/my_utils"
-	"net/http"
+	"phone_ios_backend/services/pay"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // GetPointsBalance 查询用户积分余额
@@ -62,9 +58,9 @@ func GetPointTransactions(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, common.RequestResp{
-		Code:  http.StatusOK,
-		Data:  map[string]interface{}{"list": list, "total": total},
-		Count: int(total),
+		Code:    http.StatusOK,
+		Data:    map[string]interface{}{"list": list, "total": total},
+		Count:   int(total),
 		Message: "success",
 	})
 }
@@ -88,8 +84,8 @@ func GetAppleIAPProducts(ctx *gin.Context) {
 // PointsPayment 使用积分支付商品
 func PointsPayment(ctx *gin.Context) {
 	var req struct {
-		UserID     string `json:"user_id" binding:"required"`
-		AppName    string `json:"app_name" binding:"required"`
+		UserID      string `json:"user_id" binding:"required"`
+		AppName     string `json:"app_name" binding:"required"`
 		ProductName string `json:"product_name" binding:"required"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -98,63 +94,7 @@ func PointsPayment(ctx *gin.Context) {
 		return
 	}
 
-	// 生成唯一交易ID
-	transactionID := "POINTS_" + my_utils.GenerateOrderID("PAY")
-
-	// 从 product_prices 表查询商品价格
-	priceDAO := dao.NewProductPriceDAO()
-	productPrice, err := priceDAO.GetProductPriceByName(req.ProductName)
-	if err != nil {
-		logger.HandleError(ctx, logger.NewAppError(http.StatusNotFound, "商品不存在: "+err.Error()))
-		return
-	}
-
-	// 商品价格作为积分扣减数量(1元=1积分)
-	credits := int(productPrice.Price)
-
-	pointsDAO := dao.NewUserPointsDAO()
-	iapTxDAO := dao.NewIAPTransactionDAO()
-
-	var result struct {
-		TransactionID string `json:"transaction_id"`
-		ProductName   string `json:"product_name"`
-		Credits       int    `json:"credits"`
-		Balance       int    `json:"balance"`
-	}
-
-	// 在事务中完成：扣减积分 + 记录交易
-	err = connection.DbConnection.Transaction(func(tx *gorm.DB) error {
-		// 1. 扣减积分
-		newBalance, err := pointsDAO.Decrease(tx, req.UserID, req.AppName, credits,
-			model.PointSourceManual, transactionID, req.ProductName, "积分支付: "+req.ProductName)
-		if err != nil {
-			return err
-		}
-
-		// 2. 记录交易信息到 IAPTransaction
-		iapTx := &model.IAPTransaction{
-			TransactionID:         transactionID,
-			OriginalTransactionID: transactionID,
-			UserID:                req.UserID,
-			AppName:               req.AppName,
-			ProductID:             req.ProductName,
-			Amount:                productPrice.Price,
-			Credits:               credits,
-			Environment:           "points",
-			ReceiptHash:           transactionID,
-			PayTime:               time.Now(),
-		}
-		if err := iapTxDAO.CreateTx(tx, iapTx); err != nil {
-			return err
-		}
-
-		result.TransactionID = transactionID
-		result.ProductName = req.ProductName
-		result.Credits = credits
-		result.Balance = newBalance
-		return nil
-	})
-
+	result, err := pay.PayWithPoints(ctx.Request.Context(), req.UserID, req.AppName, req.ProductName)
 	if err != nil {
 		logger.HandleError(ctx, err)
 		return

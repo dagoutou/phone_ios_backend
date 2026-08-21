@@ -138,6 +138,7 @@ func Router(g *gin.Engine) {
 		pay := group.Group("")
 		{
 			pay.POST("/payments/apple_iap/verify", api.AppleIAPVerify)
+			pay.POST("/phone_check", api.PhoneCheck)
 		}
 		points := group.Group("/points")
 		{
@@ -159,7 +160,7 @@ func Router(g *gin.Engine) {
 		// 短信相关路由
 		sms := group.Group("/sms")
 		{
-			// sms.POST("/send", api.SendTextMessage) // TODO: 处理函数已删除,待重新实现
+			sms.POST("/send", api.SendTextMessage)
 			sms.POST("/reply/upload", api.UploadTextMessageReplyImage)
 			sms.POST("/order/complete", api.CompleteTextMessageOrder)
 			sms.POST("/order/reject", api.RejectTextMessageOrder)

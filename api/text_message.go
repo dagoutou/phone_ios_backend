@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,12 +12,100 @@ import (
 	"phone_ios_backend/logger"
 	"phone_ios_backend/model"
 	"phone_ios_backend/my_utils"
+	"phone_ios_backend/services/pay"
 	"phone_ios_backend/services/sms"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+// SendTextMessage 使用积分支付并发送短信，或创建人工短信审核记录。
+func SendTextMessage(ctx *gin.Context) {
+	var req struct {
+		UserID          string `json:"user_id" binding:"required"`
+		Content         string `json:"content" binding:"required"`
+		Mobile          string `json:"mobile" binding:"required"`
+		Account         string `json:"account"`
+		Houzhui         string `json:"houzhui"`
+		PlanTime        *int64 `json:"plan_time"`
+		AppName         string `json:"app_name" binding:"required"`
+		MessageType     string `json:"message_type"`
+		Platform        string `json:"platform"`
+		PlatformAccount string `json:"platform_account"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		logger.HandleError(ctx, logger.NewAppError(http.StatusBadRequest, err.Error()))
+		return
+	}
+
+	if req.MessageType == "" {
+		req.MessageType = string(model.MessageDetailTypeTextMessage)
+	}
+	if req.MessageType != string(model.MessageDetailTypeTextMessage) &&
+		req.MessageType != string(model.MessageDetailTypeManualMessage) {
+		logger.HandleError(ctx, logger.NewAppError(http.StatusBadRequest,
+			"message_type must be text_message or manual_message"))
+		return
+	}
+	if req.MessageType == string(model.MessageDetailTypeManualMessage) {
+		if req.Platform == "" {
+			logger.HandleError(ctx, logger.NewAppError(http.StatusBadRequest,
+				"platform is required for manual message"))
+			return
+		}
+		if req.PlatformAccount == "" {
+			logger.HandleError(ctx, logger.NewAppError(http.StatusBadRequest,
+				"platform_account is required for manual message"))
+			return
+		}
+	}
+
+	metadata, err := json.Marshal(sms.TextMessagePayParams{
+		Content:         req.Content,
+		Mobile:          req.Mobile,
+		Account:         req.Account,
+		Houzhui:         req.Houzhui,
+		PlanTime:        req.PlanTime,
+		MessageType:     req.MessageType,
+		Platform:        req.Platform,
+		PlatformAccount: req.PlatformAccount,
+	})
+	if err != nil {
+		logger.HandleError(ctx, err)
+		return
+	}
+
+	payment, err := pay.PayWithPoints(ctx.Request.Context(), req.UserID, req.AppName, req.MessageType)
+	if err != nil {
+		logger.HandleError(ctx, err)
+		return
+	}
+
+	if req.MessageType == string(model.MessageDetailTypeManualMessage) {
+		err = sms.ProcessManualMessagePayment(connection.DbConnection, req.UserID,
+			payment.TransactionID, string(metadata))
+	} else {
+		err = sms.ProcessTextMessagePayment(connection.DbConnection, req.UserID,
+			payment.TransactionID, string(metadata))
+	}
+	if err != nil {
+		logger.HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, common.RequestResp{
+		Code: http.StatusOK,
+		Data: map[string]interface{}{
+			"status":         "success",
+			"order_no":       payment.TransactionID,
+			"transaction_id": payment.TransactionID,
+			"credits":        payment.Credits,
+			"balance":        payment.Balance,
+		},
+		Message: "success",
+	})
+}
 
 // GetTextMessageOrders 获取用户的短信订单列表
 func GetTextMessageOrders(ctx *gin.Context) {
